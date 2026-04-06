@@ -143,13 +143,22 @@ if user_input:
 
             context = "\n\n".join([doc.page_content for doc in docs])
 
-            formatted_prompt = prompt.format_messages(
-                context=context,
-                question=user_input
-            )
-
-            response = llm.invoke(formatted_prompt)
-
+            # Limit context size (VERY IMPORTANT)
+            context = context[:3000]
+            
+            messages = [
+                {
+                    "role": "system",
+                    "content": "You are a helpful fitness and diet assistant. Answer only from the provided context."
+                },
+                {
+                    "role": "user",
+                    "content": f"Context:\n{context}\n\nQuestion:\n{user_input}"
+                }
+            ]
+            
+            response = llm.invoke(messages)
+            
             answer = response.content
 
             st.markdown(answer)
