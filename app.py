@@ -6,7 +6,7 @@ import streamlit as st
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_community.vectorstores import Chroma
+from langchain_community.vectorstores import FAISS
 
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
@@ -19,15 +19,15 @@ load_dotenv()
 groq_api_key = os.getenv("GROQ_API_KEY")
 
 if not groq_api_key:
-    st.error("GROQ_API_KEY not found in .env file")
+    st.error("GROQ_API_KEY not found")
     st.stop()
 
 
 # -----------------------------
 # UI
 # -----------------------------
-st.set_page_config(page_title="Workout & Diet Chatbot", page_icon="💪")
-st.title("💪 Workout & Diet Chatbot")
+st.set_page_config(page_title="Workout & Diet Chatbot")
+st.title("Workout & Diet Chatbot")
 st.caption("Ask questions from your PDFs")
 
 
@@ -71,13 +71,12 @@ def get_embeddings():
 
 
 # -----------------------------
-# STEP 4 — VECTOR DB (CHROMA)
+# STEP 4 — VECTOR DB (FAISS)
 # -----------------------------
 def create_vectorstore(chunks, embeddings):
-    vectordb = Chroma.from_documents(
+    vectordb = FAISS.from_documents(
         documents=chunks,
-        embedding=embeddings,
-        persist_directory="chroma_db"
+        embedding=embeddings
     )
     return vectordb
 
@@ -138,7 +137,6 @@ if user_input:
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
 
-            # ✅ NEW WORKING RAG FLOW
             llm, retriever, prompt = build_rag(vectordb)
 
             docs = retriever.invoke(user_input)
