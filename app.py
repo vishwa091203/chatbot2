@@ -8,7 +8,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 
-from langchain_groq import ChatGroq
+from groq import Groq
 from langchain_core.prompts import ChatPromptTemplate
 
 
@@ -22,6 +22,7 @@ if not groq_api_key:
     st.error("GROQ_API_KEY not found")
     st.stop()
 
+client = Groq(api_key=groq_api_key)
 
 # -----------------------------
 # UI
@@ -137,29 +138,30 @@ if user_input:
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
 
-            llm, retriever, prompt = build_rag(vectordb)
-
-            docs = retriever.invoke(user_input)
-
-            context = "\n\n".join([doc.page_content for doc in docs])
-
-            # Limit context size (VERY IMPORTANT)
-            context = context[:3000]
-            
-            messages = [
-                {
-                    "role": "system",
-                    "content": "You are a helpful fitness and diet assistant. Answer only from the provided context."
-                },
-                {
-                    "role": "user",
-                    "content": f"Context:\n{context}\n\nQuestion:\n{user_input}"
-                }
-            ]
-            
-            response = llm.invoke(messages)
-            
-            answer = response.content
+                retriever = vectordb.as_retriever(search_kwargs={"k": 4})
+    
+    docs = retriever.invoke(user_input)
+    
+    context = "\n\n".join([doc.page_content for doc in docs])
+    
+    # Limit context (VERY IMPORTANT)
+    context = context[:3000]
+    
+    response = client.chat.completions.create(
+        model="llama3-8b-8192",
+        messages=[
+            {
+                "role": "system",
+                "content": "You are a helpful fitness and diet assistant. Answer only from the given context."
+            },
+            {
+                "role": "user",
+                "content": f"Context:\n{context}\n\nQuestion:\n{user_input}"
+            }
+        ]
+    )
+    
+    answer = response.choices[0].message.content
 
             st.markdown(answer)
 
